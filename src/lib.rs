@@ -1,18 +1,27 @@
-use valence::{
-    graph::{VData, VNode, VNodeCtx, VTransform},
-    Frame, Result, VGraph, VNodeRef,
+use mixlayer::{
+    graph::{MxlData, MxlNode, MxlNodeCtx, MxlTransform},
+    Frame, MxlGraph, MxlNodeRef,
 };
 
+use anyhow::Result;
 use serde::Serialize;
 
 use handlebars::{Handlebars, Template};
 
-pub trait HandlebarsNodeOps<I, O: VData + Serialize> {
-    fn handlebars(&self, g: &mut VGraph, template: impl AsRef<str>) -> Result<VNodeRef<O, String>>;
+pub trait HandlebarsNodeOps<I, O: MxlData + Serialize> {
+    fn handlebars(
+        &self,
+        g: &mut MxlGraph,
+        template: impl AsRef<str>,
+    ) -> Result<MxlNodeRef<O, String>>;
 }
 
-impl<I, O: VData + Serialize> HandlebarsNodeOps<I, O> for VNodeRef<I, O> {
-    fn handlebars(&self, g: &mut VGraph, template: impl AsRef<str>) -> Result<VNodeRef<O, String>> {
+impl<I, O: MxlData + Serialize> HandlebarsNodeOps<I, O> for MxlNodeRef<I, O> {
+    fn handlebars(
+        &self,
+        g: &mut MxlGraph,
+        template: impl AsRef<str>,
+    ) -> Result<MxlNodeRef<O, String>> {
         let hbs = HbsTemplateXform::new(template)?;
         Ok(self.transform(g, hbs))
     }
@@ -21,7 +30,7 @@ impl<I, O: VData + Serialize> HandlebarsNodeOps<I, O> for VNodeRef<I, O> {
 /// Takes an input and applies it to a Handlebars template
 pub struct HbsTemplateXform<I>
 where
-    I: VData + Serialize,
+    I: MxlData + Serialize,
 {
     handlebars: handlebars::Handlebars<'static>,
     _marker: std::marker::PhantomData<I>,
@@ -29,7 +38,7 @@ where
 
 impl<I> HbsTemplateXform<I>
 where
-    I: VData + Serialize,
+    I: MxlData + Serialize,
 {
     pub fn new(template: impl AsRef<str>) -> Result<Self> {
         let template = Template::compile(template.as_ref())?;
@@ -45,11 +54,11 @@ where
     }
 }
 
-impl<I> VNode for HbsTemplateXform<I>
+impl<I> MxlNode for HbsTemplateXform<I>
 where
-    I: VData + Serialize,
+    I: MxlData + Serialize,
 {
-    fn tick(&mut self, ctx: &mut VNodeCtx) -> Result<()> {
+    fn tick(&mut self, ctx: &mut MxlNodeCtx) -> Result<()> {
         if ctx.recv_finished() {
             self.send(ctx, Frame::End)?;
         } else {
@@ -69,9 +78,9 @@ where
     }
 }
 
-impl<I> VTransform for HbsTemplateXform<I>
+impl<I> MxlTransform for HbsTemplateXform<I>
 where
-    I: VData + Serialize,
+    I: MxlData + Serialize,
 {
     type Input = I;
     type Output = String;
